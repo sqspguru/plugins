@@ -1,50 +1,69 @@
 document.addEventListener("DOMContentLoaded", () => {
   const cfg = window.TextZoomerConfig || {};
 
-  // Container selector
+  /* -------------------------
+     Container selector
+  ------------------------- */
   let containerSelector = "html";
-  if(cfg.scope === 'blog') {
-    if(!document.querySelector('.blog-item-wrapper')) return;
-    containerSelector = '.blog-basic-grid-item-wrapper .sqs-block-content';
+  if (cfg.scope === "blog") {
+    if (!document.querySelector(".blog-item-wrapper")) return;
+    containerSelector = ".blog-basic-grid-item-wrapper .sqs-block-content";
   }
 
-  // Cookie helpers
-  function setCookie(name, value, days){
+  /* -------------------------
+     Cookie helpers
+  ------------------------- */
+  function setCookie(name, value, days) {
     const d = new Date();
-    d.setTime(d.getTime() + days*24*60*60*1000);
+    d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
     document.cookie = `${name}=${value};path=/;expires=${d.toUTCString()}`;
   }
-  function getCookie(name){
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+
+  function getCookie(name) {
+    const match = document.cookie.match(
+      new RegExp("(^| )" + name + "=([^;]+)")
+    );
     return match ? match[2] : null;
   }
 
-  // Load saved zoom
+  /* -------------------------
+     Load saved zoom
+  ------------------------- */
   let currentZoom = 100;
-  if(cfg.useCookies){
-    const saved = getCookie('fontZoom');
-    if(saved) currentZoom = parseInt(saved);
+  if (cfg.useCookies) {
+    const saved = getCookie("fontZoom");
+    if (saved) currentZoom = parseInt(saved);
   } else {
-    const saved = localStorage.getItem('fontZoom');
-    if(saved) currentZoom = parseInt(saved);
+    const saved = localStorage.getItem("fontZoom");
+    if (saved) currentZoom = parseInt(saved);
   }
 
-  // Tooltip side
-  const tooltipSideClass = (cfg.position === "left-center") ? "tooltip-right" : "tooltip-left";
+  /* -------------------------
+     Tooltip side
+  ------------------------- */
+  const tooltipSideClass =
+    cfg.position === "left-center" ? "tooltip-right" : "tooltip-left";
 
-  // Toolbar element
+  /* -------------------------
+     Toolbar element
+  ------------------------- */
   const toolbar = document.createElement("div");
-  toolbar.className = "fontzoom-controls " + (cfg.tooltips ? "tooltip-enabled" : "");
+  toolbar.className =
+    "fontzoom-controls " + (cfg.tooltips ? "tooltip-enabled" : "");
 
-  // Position
+  /* -------------------------
+     Position
+  ------------------------- */
   const posMap = {
     "left-center": "left:20px; top:50%; transform:translateY(-50%);",
     "right-center": "right:20px; top:50%; transform:translateY(-50%);",
-    "bottom-right": "right:20px; bottom:20px;"
+    "bottom-right": "right:20px; bottom:20px;",
   };
   toolbar.style.cssText = posMap[cfg.position] || posMap["left-center"];
 
-  // Toggle SVG (mobile)
+  /* -------------------------
+     Toggle SVG (mobile)
+  ------------------------- */
   const toggleSVG = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 23" width="36" height="23">
     <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
@@ -56,7 +75,9 @@ document.addEventListener("DOMContentLoaded", () => {
   </svg>
   `;
 
-  // Toolbar HTML
+  /* -------------------------
+     Toolbar HTML
+  ------------------------- */
   toolbar.innerHTML = `
     <button class="fz-toggle">${toggleSVG}</button>
     <div class="fontzoom-buttons">
@@ -68,36 +89,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.body.appendChild(toolbar);
 
-  // Apply zoom
-  function applyZoom(){
-    document.querySelectorAll(containerSelector).forEach(el => {
+  /* -------------------------
+     Apply zoom
+  ------------------------- */
+  function applyZoom() {
+    document.querySelectorAll(containerSelector).forEach((el) => {
       el.style.fontSize = currentZoom + "%";
     });
-    if(cfg.useCookies){
-      setCookie('fontZoom', currentZoom, cfg.cookieDays);
+
+    if (cfg.useCookies) {
+      setCookie("fontZoom", currentZoom, cfg.cookieDays);
     } else {
-      localStorage.setItem('fontZoom', currentZoom);
+      localStorage.setItem("fontZoom", currentZoom);
     }
   }
 
   applyZoom();
 
-  // Button click events
-  toolbar.addEventListener("click", (e)=>{
+  /* -------------------------
+     Toolbar click handler
+  ------------------------- */
+  toolbar.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
-    if(!btn) return;
+    if (!btn) return;
 
     // Mobile toggle
-    if(btn.classList.contains("fz-toggle") && window.innerWidth <= 767){
+    if (btn.classList.contains("fz-toggle") && window.innerWidth <= 767) {
+      e.stopPropagation();
       toolbar.classList.toggle("expanded");
       return;
     }
 
     const action = btn.dataset.action;
-    if(action === "increase" && currentZoom < cfg.maxZoom) currentZoom += cfg.step;
-    if(action === "decrease" && currentZoom > cfg.minZoom) currentZoom -= cfg.step;
-    if(action === "reset") currentZoom = 100;
+    if (action === "increase" && currentZoom < cfg.maxZoom)
+      currentZoom += cfg.step;
+    if (action === "decrease" && currentZoom > cfg.minZoom)
+      currentZoom -= cfg.step;
+    if (action === "reset") currentZoom = 100;
 
     applyZoom();
+
+    // Auto-close after action on mobile
+    if (window.innerWidth <= 767) {
+      toolbar.classList.remove("expanded");
+    }
+  });
+
+  /* -------------------------
+     Close on outside click (mobile)
+  ------------------------- */
+  document.addEventListener("click", (e) => {
+    if (window.innerWidth > 767) return;
+    if (!toolbar.classList.contains("expanded")) return;
+    if (toolbar.contains(e.target)) return;
+
+    toolbar.classList.remove("expanded");
   });
 });
